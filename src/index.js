@@ -1,5 +1,27 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const { PORT } = require('./config');
 const logger = require('./logger');
+const { backends } = require('./loadBalancer'); // ← добавить
 
-logger.info('The proxy starts on the port ' + PORT);
+const express = require('express');
+const http = require('http');
+const app = express();
+const server = http.createServer(app);
+
+// показываем состояние бэкендов
+app.get('/status', (_, res) => res.json({
+    status: 'работает',
+    port: PORT,
+    time: new Date().toISOString(),
+    backends: backends.map(b => ({
+        url: b.url,
+        healthy: b.healthy,
+        connections: b.connections
+    })),
+}));
+
+app.get('/health', (_, res) => res.json({ ok: true }));
+
+server.listen(PORT, () => {
+    logger.info('The proxy starts on the port ' + PORT);
+});
